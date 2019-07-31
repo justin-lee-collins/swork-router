@@ -12,14 +12,13 @@ const app = new Swork();
 const router = new Router();
 
 router.get("/hello", (context: RouterContext) => {
-    context.respondWith(new Response("world!"));
+    context.response = new Response("world!");
 });
 
 app.use(router.routes());
 
 app.listen();
 ```
-
 
 ## Installation
 

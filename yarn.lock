@@ -3365,9 +3365,9 @@ supports-color@^6.1.0:
     has-flag "^3.0.0"
 
 swork@^1.1.1:
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/swork/-/swork-1.1.1.tgz#1fa5044da74ac76be0b6503fdb47e3cb4ca03da4"
-  integrity sha512-WNQUkASax4z1OrtfDAOLozSHdCDyjYrMmmTuauCJAdLLZsctUtntbezktpSzNw7xHNru7BLwrfqrEhQP8asgdQ==
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/swork/-/swork-1.3.0.tgz#ad0c690b7a8bea097a2d22e0e87201981f322f48"
+  integrity sha512-vOp7rd00o5f3ovt+b5JUlLnGtw5KAEySi3qRhWvQYT2v1um63X+2Zz4x9oLIGPPEA9SQepWnRVP31h7WmKuXKw==
 
 symbol-tree@^3.2.2:
   version "3.2.4"
