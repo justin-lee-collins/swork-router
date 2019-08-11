@@ -2,7 +2,17 @@
 
 Swork-Router is router middleware for Swork powered by path-to-regexp. It built with TypeScript and async methods.
 
-### Hello World
+**License**
+
+MIT
+
+**Installation**
+
+`npm install swork-router`
+
+`yarn add swork-router`
+
+**Example**
 
 ```ts
 import { Swork } from "swork";
@@ -11,8 +21,8 @@ import { Router, RouterContext } from "swork-router";
 const app = new Swork();
 const router = new Router();
 
-router.get("/hello", (context: RouterContext) => {
-    context.response = new Response("world!");
+router.get("/hello/:id", (context: RouterContext) => {
+    context.response = new Response(`world id: ${context.params.id}`);
 });
 
 app.use(router.routes());
@@ -20,54 +30,43 @@ app.use(router.routes());
 app.listen();
 ```
 
-## Installation
+## Methods
 
-Install via npm:
+**get | post | put | patch | delete | head | options | all**
 
-```ts
-npm install swork-router
-```
-
-Install via yarn:
-
-```ts
-yarn add swork-router
-```
-
-## Verb
-
-Create a route using `router.verb()` method where verb is one of the HTTP verbs such as `get` or `post`. Alternatively, `all` is available to match on all HTTP verbs.
+Create a route using the HTTP verb as your method name such as `router.get(...)` or `router.post(...)`.  In addition, `all` is available to match on all HTTP verbs.
 
 ```ts
 router
-    .get("/foos", (context: RouterContext, next: () => Promise<void>) => {
+    .get("/foos", (context: RouterContext) => {
         // ...
-    }).post("/foos", (context: RouterContext, next: () => Promise<void>) => {
+    }).post("/foos", (context: RouterContext) => {
         // ...    
-    }).put("/foos/:id", (context: RouterContext, next: () => Promise<void>) => {
+    }).put("/foos/:id", (context: RouterContext) => {
         // ...
-    }).delete("/foos/:id", (context: RouterContext, next: () => Promise<void>) => {
+    }).delete("/foos/:id", (context: RouterContext) => {
+        // ...
+    }).all("/foos", (context: RouterContext) => {
         // ...
     });
 ```
 
-Route paths are translated to regular expressions using `path-to-regexp`.
+Route paths must start with a slash and end with none. Paths are translated to regular expressions using [path-to-regexp](https://www.npmjs.com/package/path-to-regexp). As a result, query strings are not evaluated when matching requests.
 
-Query strings are not evaluated when matching requests.
+**use**
 
-## Origins
-
-Alternate origins can be used but default to the location of the service worker.
+`use` allows the nesting of routers. This is useful when building a router in a separate module.
 
 ```ts
-// Same location origin
-router.get("/foos", ...);
+const router = new Router({ prefix: "/api" });
 
-// External origin
-router.get("http://www.example.com/foos", ...);
+router.use(getFooRouter());
+router.use(getBarRouter());
 ```
 
-## Prefix
+## Configuration
+
+**Prefix**
 
 Routes can be prefixed at the router level.
 
@@ -78,7 +77,18 @@ const router = new Router({
 
 router.get("/", ...); // responds to "/foos"
 router.put("/:id", ...); // responds to "/foos/:id"
+```
 
+**Origin**
+
+Alternate origins can be used but default to `configuration.origin` from swork.
+
+```ts
+const router = new Router({
+    origin: "https://www.hello.com"
+});
+
+router.get("/world", () => { ... });
 ```
 
 ## Url Parameters

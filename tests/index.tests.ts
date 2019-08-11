@@ -128,7 +128,7 @@ describe("router tests", () => {
         expect(middleware).toBeCalledTimes(1);
     });
 
-    test("ALL test", () => {        
+    test("ALL test", () => {
         const route = router.all("/hello", middleware).routes()[0];
 
         ["HEAD", "OPTIONS", "GET", "PUT", "PATCH", "POST", "DELETE"].forEach((x) => {
@@ -139,8 +139,9 @@ describe("router tests", () => {
     });
 
     test("custom origin", () => {
-        
-        const route = router.get("http://www.example.com/hello", middleware).routes()[0];
+        router = new Router({ origin: "http://www.example.com" });
+
+        const route = router.get("/hello", middleware).routes()[0];
 
         route(getFetchEvent("http://localhost/hello"), noopHandler);
         expect(middleware).toBeCalledTimes(0);
@@ -154,7 +155,7 @@ describe("router tests", () => {
         router = new Router({
             prefix: "/api",
         });
-        
+
         const route = router.get("/hello", middleware).routes()[0];
 
         route(getFetchEvent("http://localhost/hello"), noopHandler);
@@ -180,5 +181,64 @@ describe("router tests", () => {
         expect(middleware).toBeCalledTimes(1);
 
         done();
+    });
+
+    test("nested router", () => {
+        router = new Router({ prefix: "/api" });
+
+        const nestedRouter = new Router();
+
+        nestedRouter.get("/hello", middleware);
+
+        router.use(nestedRouter);
+
+        const route = router.routes()[0];
+
+        route(getFetchEvent("http://localhost/hello"), noopHandler);
+        route(getFetchEvent("http://localhost/api/hello"), noopHandler);
+
+        expect(middleware).toBeCalledTimes(1);
+    });
+
+    test("routes called twice fails", () => {
+        router.routes();
+
+        expect(() => {
+            router.routes();
+        }).toThrowError("Routes can only be called once.");
+    });
+
+    test("validatePath with prefix", () => {
+        expect(() => {
+            router = new Router({ prefix: "invalidprefix" });
+        }).toThrowError();
+
+        expect(() => {
+            router = new Router({ prefix: "/invalidprefix/" });
+        }).toThrowError();
+    });
+
+    test("nested router and middleware combo", () => {
+        const swork = new Swork();
+
+        router = new Router({ origin: "http://hello" });
+
+        router.get("/world", middleware);
+        
+        const nestedRouter = new Router();
+        nestedRouter.get("/world2", middleware);
+
+        router.use(nestedRouter);
+
+        swork.use(router.routes());
+
+        // tslint:disable-next-line:no-string-literal
+        const delegate = swork["build"]();
+
+        delegate(getFetchEvent("http://hello/world"));
+        delegate(getFetchEvent("http://hello/world2"));
+        delegate(getFetchEvent("http://hello/world3"));
+        
+        expect(middleware).toBeCalledTimes(2);
     });
 });
