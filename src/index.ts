@@ -9,7 +9,8 @@ import { configuration } from "swork/dist/configuration";
  * @interface IRouterConfiguration
  */
 export interface IRouterConfiguration {
-    prefix: string;
+    prefix?: string;
+    origin?: string;
 }
 
 interface IRouterContext {
@@ -31,6 +32,12 @@ export type RouterMiddleware = (context: RouterContext, next: () => Promise<void
 
 type HttpMethod = "HEAD" | "OPTIONS" | "GET" | "PUT" | "PATCH" | "POST" | "DELETE";
 
+interface IMiddlewareDetails {
+    path: string;
+    methods: HttpMethod[];
+    middleware: RouterMiddleware;
+}
+
 /**
  * Router intended to be used with swork. Allows definition of paths and middleware to handle matching requests.
  *
@@ -39,7 +46,9 @@ type HttpMethod = "HEAD" | "OPTIONS" | "GET" | "PUT" | "PATCH" | "POST" | "DELET
  */
 export class Router {
     protected config: IRouterConfiguration;
-    protected middlewares: Middleware[] = [];
+    protected middlewareDetails: Array<IMiddlewareDetails | Router> = [];
+    
+    private routesCalled: boolean = false;
 
     /**
      * Creates an instance of Router.
@@ -48,8 +57,13 @@ export class Router {
      */
     constructor(config?: IRouterConfiguration) {
         this.config = Object.assign({
+            origin: configuration.origin,
             prefix: "",
         }, config!);
+
+        if (this.config.prefix) {
+            this.validatePath(this.config.prefix);
+        }
     }
 
     /**
@@ -61,7 +75,7 @@ export class Router {
      * @memberof Router
      */
     public head(path: string, middleware: RouterMiddleware): Router {
-        this.addMiddleware(path, ["HEAD"], middleware);
+        this.addMiddlewareDetails(path, ["HEAD"], middleware);
         return this;
     }
 
@@ -74,7 +88,7 @@ export class Router {
      * @memberof Router
      */
     public options(path: string, middleware: RouterMiddleware): Router {
-        this.addMiddleware(path, ["OPTIONS"], middleware);
+        this.addMiddlewareDetails(path, ["OPTIONS"], middleware);
         return this;
     }
 
@@ -87,7 +101,7 @@ export class Router {
      * @memberof Router
      */
     public get(path: string, middleware: RouterMiddleware): Router {
-        this.addMiddleware(path, ["GET"], middleware);
+        this.addMiddlewareDetails(path, ["GET"], middleware);
         return this;
     }
 
@@ -100,7 +114,7 @@ export class Router {
      * @memberof Router
      */
     public post(path: string, middleware: RouterMiddleware): Router {
-        this.addMiddleware(path, ["POST"], middleware);
+        this.addMiddlewareDetails(path, ["POST"], middleware);
         return this;
     }
 
@@ -113,7 +127,7 @@ export class Router {
      * @memberof Router
      */
     public patch(path: string, middleware: RouterMiddleware): Router {
-        this.addMiddleware(path, ["PATCH"], middleware);
+        this.addMiddlewareDetails(path, ["PATCH"], middleware);
         return this;
     }
 
@@ -126,7 +140,7 @@ export class Router {
      * @memberof Router
      */
     public put(path: string, middleware: RouterMiddleware): Router {
-        this.addMiddleware(path, ["PUT"], middleware);
+        this.addMiddlewareDetails(path, ["PUT"], middleware);
         return this;
     }
 
@@ -139,7 +153,7 @@ export class Router {
      * @memberof Router
      */
     public delete(path: string, middleware: RouterMiddleware): Router {
-        this.addMiddleware(path, ["DELETE"], middleware);
+        this.addMiddlewareDetails(path, ["DELETE"], middleware);
         return this;
     }
 
@@ -152,7 +166,7 @@ export class Router {
      * @memberof Router
      */
     public all(path: string, middleware: RouterMiddleware): Router {
-        this.addMiddleware(path, ["HEAD", "OPTIONS", "GET", "PUT", "PATCH", "POST", "DELETE"], middleware);
+        this.addMiddlewareDetails(path, ["HEAD", "OPTIONS", "GET", "PUT", "PATCH", "POST", "DELETE"], middleware);
         return this;
     }
 
@@ -163,35 +177,64 @@ export class Router {
      * @memberof Router
      */
     public routes(): Middleware[] {
-        return this.middlewares;
-    }
-
-    private addMiddleware(path: string, method: HttpMethod[], middleware: RouterMiddleware): void {
-        const paramNames: pathToRegExp.Key[] = [];
-
-        let origin = "";
-
-        if (!path.toLowerCase().startsWith("http://") && !path.toLowerCase().startsWith("https://")) {
-            origin = configuration.origin;
-        } else {
-            const url = new URL(path);
-
-            origin = url.origin;
-            path = url.pathname;
+        if (this.routesCalled) {
+            throw new Error("Routes can only be called once.");
         }
 
-        origin = origin.toLowerCase();
+        const middleware: Middleware[] = [];
 
+        this.middlewareDetails.forEach((detail) => {
+            if (detail instanceof Router) {                
+                if (this.config.prefix) {
+                    detail.config.prefix = this.config.prefix + detail.config.prefix;
+                }
+
+                detail.config.origin = this.config.origin;
+
+                Array.prototype.push.apply(middleware, detail.routes());
+            } else {
+                middleware.push(this.build(detail.path, detail.methods, detail.middleware));
+            }
+        });
+        
+        this.routesCalled = true;
+
+        return middleware;
+    }
+
+    /**
+     * Adds to the internal middlewares allowing nested routers.
+     *
+     * @param {(Router)} param
+     * @memberof Router
+     */
+    public use(param: Router): void {
+        this.middlewareDetails.push(param);
+    }
+
+    private addMiddlewareDetails(path: string, methods: HttpMethod[], middleware: RouterMiddleware): void {
+        this.validatePath(path);
+        
+        this.middlewareDetails.push({
+            methods,
+            middleware,
+            path,
+        } as IMiddlewareDetails);
+    }
+
+    private build(path: string, methods: HttpMethod[], middleware: RouterMiddleware): Middleware {
         if (this.config.prefix) {
             path = this.config.prefix + path;
         }
 
+        const paramNames: pathToRegExp.Key[] = [];
         const regexp = pathToRegExp(path, paramNames);
+        const origin = this.config.origin!;
 
-        this.middlewares.push((context: FetchContext, next: () => Promise<void>): Promise<void> => {
+        return (context: FetchContext, next: () => Promise<void>): Promise<void> => {
             const routerContext = context as RouterContext;
 
-            if (method.indexOf(routerContext.request.method as HttpMethod) === -1) {
+            if (methods.indexOf(routerContext.request.method as HttpMethod) === -1) {
                 return next();
             }
 
@@ -216,6 +259,16 @@ export class Router {
             }
 
             return Promise.resolve(middleware(routerContext, next));
-        });
+        };
+    }
+    
+    private validatePath(path: string) {
+        if (path[0] !== "/") {
+            throw new Error(`config.prefix "${path}" does not have a valid format.`);
+        }
+
+        if (path.length > 1 && path[path.length - 1] === "/") {
+            throw new Error(`config.prefix "${path}" does not have a valid format.`);
+        }
     }
 }

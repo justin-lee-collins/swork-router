@@ -3364,10 +3364,10 @@ supports-color@^6.1.0:
   dependencies:
     has-flag "^3.0.0"
 
-swork@^1.4.1:
-  version "1.4.1"
-  resolved "https://registry.yarnpkg.com/swork/-/swork-1.4.1.tgz#1eff1e1c6e7e99551c0ba2905f1508f32ad73464"
-  integrity sha512-3YxL0z6rAx9Ad1pGBiQ8lIURdkD+SI1eyhHbpyy81rPzibxvDanzwbx5a4rDlLlab08Xte12rAfbU83dm8o7Jw==
+swork@^1.4.3:
+  version "1.4.3"
+  resolved "https://registry.yarnpkg.com/swork/-/swork-1.4.3.tgz#782a86e16b41e6bb2952bf1ae1f3dc56df8de50c"
+  integrity sha512-XF5U0WNE2+rfHjiF3HJmLrWQC6ymmyOMPNRaeTL3PNHvApfcjfIPZ4F0CCP33RsMqchRM8QFboV4ilZ+A1WQzA==
 
 symbol-tree@^3.2.2:
   version "3.2.4"
