@@ -33,7 +33,7 @@ export type RouterMiddleware = (context: RouterContext, next: () => Promise<void
 type HttpMethod = "HEAD" | "OPTIONS" | "GET" | "PUT" | "PATCH" | "POST" | "DELETE";
 
 interface IMiddlewareDetails {
-    path: string;
+    path: string[];
     methods: HttpMethod[];
     middleware: RouterMiddleware;
 }
@@ -47,7 +47,7 @@ interface IMiddlewareDetails {
 export class Router {
     protected config: IRouterConfiguration;
     protected middlewareDetails: Array<IMiddlewareDetails | Router> = [];
-    
+
     private routesCalled: boolean = false;
 
     /**
@@ -62,7 +62,7 @@ export class Router {
         }, config!);
 
         if (this.config.prefix) {
-            this.validatePath(this.config.prefix);
+            this.validatePaths([this.config.prefix]);
         }
     }
 
@@ -74,7 +74,7 @@ export class Router {
      * @returns {Router}
      * @memberof Router
      */
-    public head(path: string, middleware: RouterMiddleware): Router {
+    public head(path: string | string[], middleware: RouterMiddleware): Router {
         this.addMiddlewareDetails(path, ["HEAD"], middleware);
         return this;
     }
@@ -87,7 +87,7 @@ export class Router {
      * @returns {Router}
      * @memberof Router
      */
-    public options(path: string, middleware: RouterMiddleware): Router {
+    public options(path: string | string[], middleware: RouterMiddleware): Router {
         this.addMiddlewareDetails(path, ["OPTIONS"], middleware);
         return this;
     }
@@ -100,7 +100,7 @@ export class Router {
      * @returns {Router}
      * @memberof Router
      */
-    public get(path: string, middleware: RouterMiddleware): Router {
+    public get(path: string | string[], middleware: RouterMiddleware): Router {
         this.addMiddlewareDetails(path, ["GET"], middleware);
         return this;
     }
@@ -113,7 +113,7 @@ export class Router {
      * @returns {Router}
      * @memberof Router
      */
-    public post(path: string, middleware: RouterMiddleware): Router {
+    public post(path: string | string[], middleware: RouterMiddleware): Router {
         this.addMiddlewareDetails(path, ["POST"], middleware);
         return this;
     }
@@ -126,7 +126,7 @@ export class Router {
      * @returns {Router}
      * @memberof Router
      */
-    public patch(path: string, middleware: RouterMiddleware): Router {
+    public patch(path: string | string[], middleware: RouterMiddleware): Router {
         this.addMiddlewareDetails(path, ["PATCH"], middleware);
         return this;
     }
@@ -139,7 +139,7 @@ export class Router {
      * @returns {Router}
      * @memberof Router
      */
-    public put(path: string, middleware: RouterMiddleware): Router {
+    public put(path: string | string[], middleware: RouterMiddleware): Router {
         this.addMiddlewareDetails(path, ["PUT"], middleware);
         return this;
     }
@@ -152,7 +152,7 @@ export class Router {
      * @returns {Router}
      * @memberof Router
      */
-    public delete(path: string, middleware: RouterMiddleware): Router {
+    public delete(path: string | string[], middleware: RouterMiddleware): Router {
         this.addMiddlewareDetails(path, ["DELETE"], middleware);
         return this;
     }
@@ -165,7 +165,7 @@ export class Router {
      * @returns {Router}
      * @memberof Router
      */
-    public all(path: string, middleware: RouterMiddleware): Router {
+    public all(path: string | string[], middleware: RouterMiddleware): Router {
         this.addMiddlewareDetails(path, ["HEAD", "OPTIONS", "GET", "PUT", "PATCH", "POST", "DELETE"], middleware);
         return this;
     }
@@ -181,10 +181,14 @@ export class Router {
             throw new Error("Routes can only be called once.");
         }
 
+        if (!this.config.origin) {
+            throw new Error("Origin must be non-empty.");
+        }
+
         const middleware: Middleware[] = [];
 
         this.middlewareDetails.forEach((detail) => {
-            if (detail instanceof Router) {                
+            if (detail instanceof Router) {
                 if (this.config.prefix) {
                     detail.config.prefix = this.config.prefix + detail.config.prefix;
                 }
@@ -193,10 +197,10 @@ export class Router {
 
                 Array.prototype.push.apply(middleware, detail.routes());
             } else {
-                middleware.push(this.build(detail.path, detail.methods, detail.middleware));
+                Array.prototype.push.apply(middleware, this.build(detail.path, detail.methods, detail.middleware));
             }
         });
-        
+
         this.routesCalled = true;
 
         return middleware;
@@ -212,9 +216,13 @@ export class Router {
         this.middlewareDetails.push(param);
     }
 
-    private addMiddlewareDetails(path: string, methods: HttpMethod[], middleware: RouterMiddleware): void {
-        this.validatePath(path);
-        
+    private addMiddlewareDetails(path: string | string[], methods: HttpMethod[], middleware: RouterMiddleware): void {
+        if (!Array.isArray(path)) {
+            path = [path];
+        }
+
+        this.validatePaths(path);
+
         this.middlewareDetails.push({
             methods,
             middleware,
@@ -222,53 +230,65 @@ export class Router {
         } as IMiddlewareDetails);
     }
 
-    private build(path: string, methods: HttpMethod[], middleware: RouterMiddleware): Middleware {
-        if (this.config.prefix) {
-            path = this.config.prefix + path;
-        }
+    private build(paths: string[], methods: HttpMethod[], middleware: RouterMiddleware): Middleware[] {
+        const results: Middleware[] = [];
 
-        const paramNames: pathToRegExp.Key[] = [];
-        const regexp = pathToRegExp(path, paramNames);
-        const origin = this.config.origin!;
-
-        return (context: FetchContext, next: () => Promise<void>): Promise<void> => {
-            const routerContext = context as RouterContext;
-
-            if (methods.indexOf(routerContext.request.method as HttpMethod) === -1) {
-                return next();
+        paths.forEach((path) => {
+            if (this.config.prefix) {
+                path = this.config.prefix + path;
             }
 
-            const url = new URL(routerContext.request.url);
+            const paramNames: pathToRegExp.Key[] = [];
+            const regexp = pathToRegExp(path, paramNames);
+            const origin = this.config.origin!;
 
-            if (origin !== url.origin.toLowerCase()) {
-                return next();
-            }
+            results.push((context: FetchContext, next: () => Promise<void>): Promise<void> => {
+                const routerContext = context as RouterContext;
 
-            if (!regexp.test(url.pathname)) {
-                return next();
-            }
+                if (methods.indexOf(routerContext.request.method as HttpMethod) === -1) {
+                    return next();
+                }
 
-            if (paramNames.length) {
-                const params = url.pathname.match(regexp)!.slice(1);
+                const url = new URL(routerContext.request.url);
+
+                if (origin !== url.origin.toLowerCase()) {
+                    return next();
+                }
+
+                if (!regexp.test(url.pathname)) {
+                    return next();
+                }
 
                 routerContext.params = {};
 
-                params.forEach((value: string, index: number) => {
-                    routerContext.params[paramNames[index].name] = value;
-                });
-            }
+                if (paramNames.length) {
+                    const params = url.pathname.match(regexp)!.slice(1);                    
 
-            return Promise.resolve(middleware(routerContext, next));
-        };
+                    params.forEach((value: string, index: number) => {
+                        routerContext.params[paramNames[index].name] = value;
+                    });
+                }
+
+                return Promise.resolve(middleware(routerContext, next));
+            });
+        });
+
+        return results;
     }
-    
-    private validatePath(path: string) {
-        if (path[0] !== "/") {
-            throw new Error(`config.prefix "${path}" does not have a valid format.`);
-        }
 
-        if (path.length > 1 && path[path.length - 1] === "/") {
-            throw new Error(`config.prefix "${path}" does not have a valid format.`);
+    private validatePaths(paths: string[]) {
+        const invalidPaths: string[] = [];
+
+        paths.forEach((path) => {
+            if (path[0] !== "/") {
+                invalidPaths.push(path);
+            } else if (path.length > 1 && path[path.length - 1] === "/") {
+                invalidPaths.push(path);
+            }
+        });
+
+        if (invalidPaths.length) {
+            throw new Error(`Path(s) ["${invalidPaths.join("\", \"")}"] do not have a valid format.`);
         }
     }
 }
