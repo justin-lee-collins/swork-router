@@ -1,4 +1,4 @@
-import { Swork } from "swork";
+import { Swork, configuration } from "swork";
 import { FetchContext } from "swork/dist/fetch-context";
 import { Router, RouterContext } from "../src/index";
 import { getFetchEvent, mockInit } from "./mock-helper";
@@ -208,6 +208,18 @@ describe("router tests", () => {
         }).toThrowError("Routes can only be called once.");
     });
 
+    test("routes errors with empty origin", () => {
+        const originalOrigin = configuration.origin;
+        configuration.origin = "";
+        router = new Router();
+
+        expect(() => {
+            router.routes();
+        }).toThrowError("Origin must be non-empty.");
+
+        configuration.origin = originalOrigin;
+    });
+
     test("validatePath with prefix", () => {
         expect(() => {
             router = new Router({ prefix: "invalidprefix" });
@@ -240,5 +252,15 @@ describe("router tests", () => {
         delegate(getFetchEvent("http://hello/world3"));
         
         expect(middleware).toBeCalledTimes(2);
+    });
+
+    test("array test", () => {
+        const paths = ["/path1", "/path2"];
+
+        router.get(paths, middleware);
+
+        const middlewares = router.routes();
+
+        expect(middlewares.length).toBe(2);
     });
 });
