@@ -21,6 +21,7 @@
   "devDependencies": {
     "@types/jest": "^24.0.15",
     "@types/service-worker-mock": "^2.0.0",
+    "coveralls": "^3.0.6",
     "jest": "^24.8.0",
     "service-worker-mock": "^2.0.3",
     "ts-jest": "^24.0.0",
