@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/swork-router)](https://www.npmjs.com/package/swork-router) [![travis ci](https://travis-ci.org/justin-lee-collins/swork-router.svg?branch=master)](https://travis-ci.org/justin-lee-collins/swork-router.svg?branch=master) [![coverage](https://img.shields.io/coveralls/github/justin-lee-collins/swork-router)](https://img.shields.io/coveralls/github/justin-lee-collins/swork-router) [![download](https://img.shields.io/npm/dw/swork-router)](https://img.shields.io/npm/dw/swork-router)
 
-Swork-Router is router middleware for Swork powered by path-to-regexp. It built with TypeScript and async methods.
+swork-router is router middleware for [swork](https://www.npmjs.com/package/swork) powered by path-to-regexp. It is built with TypeScript and async methods.
 
 **License** 
 
