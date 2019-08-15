@@ -1,6 +1,6 @@
 # swork-router
 
-[![npm](https://img.shields.io/npm/v/swork-router)](https://www.npmjs.com/package/swork-router) [![travis ci](https://travis-ci.org/justin-lee-collins/swork-router.svg?branch=master)](https://travis-ci.org/justin-lee-collins/swork-router.svg?branch=master) [![coverage](https://img.shields.io/coveralls/github/justin-lee-collins/swork-router)](https://img.shields.io/coveralls/github/justin-lee-collins/swork-router) [![download](https://img.shields.io/npm/dw/swork-router)](https://img.shields.io/npm/dw/swork-router)
+[![npm](https://img.shields.io/npm/v/swork-router)](https://www.npmjs.com/package/swork-router) [![travis ci](https://travis-ci.org/justin-lee-collins/swork-router.svg?branch=master)](https://travis-ci.org/justin-lee-collins/swork-router.svg?branch=master) [![coverage](https://img.shields.io/coveralls/github/justin-lee-collins/swork-router)](https://img.shields.io/coveralls/github/justin-lee-collins/swork-router) [![download](https://img.shields.io/npm/dw/swork-router)](https://img.shields.io/npm/dw/swork-router) [![Greenkeeper badge](https://badges.greenkeeper.io/justin-lee-collins/swork-router.svg)](https://greenkeeper.io/)
 
 swork-router is router middleware for [swork](https://www.npmjs.com/package/swork) powered by path-to-regexp. It is built with TypeScript and async methods.
 
