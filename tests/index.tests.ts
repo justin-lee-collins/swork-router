@@ -1,6 +1,6 @@
-import { Swork, configuration } from "swork";
+import { configuration, Swork } from "swork";
 import { FetchContext } from "swork/dist/fetch-context";
-import { Router, RouterContext } from "../src/index";
+import { Router } from "../src/index";
 import { getFetchEvent, mockInit } from "./mock-helper";
 
 // tslint:disable-next-line:no-empty
@@ -41,7 +41,7 @@ describe("router tests", () => {
     });
 
     test("params end up on context", async (done) => {
-        const routes = router.get("/hello/:id/:next", (context: RouterContext) => {
+        const routes = router.get("/hello/:id/:next", (context: FetchContext) => {
             expect(context.params).toBeTruthy();
             // tslint:disable-next-line:no-string-literal
             expect(context.params["id"]).toBe("12");

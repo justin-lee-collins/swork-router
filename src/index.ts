@@ -2,6 +2,16 @@ import * as pathToRegExp from "path-to-regexp";
 import { FetchContext, Middleware } from "swork";
 import { configuration } from "swork/dist/configuration";
 
+declare module "swork" {
+    // tslint:disable-next-line:interface-name
+    interface FetchContext {
+        /**
+         * The params object populated by the matching routes.
+         */
+        params: { [key: string]: string };
+    }
+}
+
 /**
  * Defines the configuration used to by a Router instance.
  *
@@ -13,29 +23,12 @@ export interface IRouterConfiguration {
     origin?: string;
 }
 
-interface IRouterContext {
-    /**
-     * The params object populated by the matching routes.
-     */
-    params: { [key: string]: string };
-}
-
-/**
- * The router context; an extension of FetchContext.
- */
-export type RouterContext = FetchContext & IRouterContext;
-
-/**
- * The router middleware definition; an extension of Middleware.
- */
-export type RouterMiddleware = (context: RouterContext, next: () => Promise<void>) => void | Promise<void>;
-
 type HttpMethod = "HEAD" | "OPTIONS" | "GET" | "PUT" | "PATCH" | "POST" | "DELETE";
 
 interface IMiddlewareDetails {
     path: string[];
     methods: HttpMethod[];
-    middleware: RouterMiddleware;
+    middleware: Middleware;
 }
 
 /**
@@ -70,11 +63,11 @@ export class Router {
      * Defines a head request handler.
      *
      * @param {string} path
-     * @param {RouterMiddleware} middleware
+     * @param {Middleware} middleware
      * @returns {Router}
      * @memberof Router
      */
-    public head(path: string | string[], middleware: RouterMiddleware): Router {
+    public head(path: string | string[], middleware: Middleware): Router {
         this.addMiddlewareDetails(path, ["HEAD"], middleware);
         return this;
     }
@@ -83,11 +76,11 @@ export class Router {
      * Defines an options request handler.
      *
      * @param {string} path
-     * @param {RouterMiddleware} middleware
+     * @param {Middleware} middleware
      * @returns {Router}
      * @memberof Router
      */
-    public options(path: string | string[], middleware: RouterMiddleware): Router {
+    public options(path: string | string[], middleware: Middleware): Router {
         this.addMiddlewareDetails(path, ["OPTIONS"], middleware);
         return this;
     }
@@ -96,11 +89,11 @@ export class Router {
      * Defines a get request handler.
      *
      * @param {string} path
-     * @param {RouterMiddleware} middleware
+     * @param {Middleware} middleware
      * @returns {Router}
      * @memberof Router
      */
-    public get(path: string | string[], middleware: RouterMiddleware): Router {
+    public get(path: string | string[], middleware: Middleware): Router {
         this.addMiddlewareDetails(path, ["GET"], middleware);
         return this;
     }
@@ -109,11 +102,11 @@ export class Router {
      * Defines a post request handler.
      *
      * @param {string} path
-     * @param {RouterMiddleware} middleware
+     * @param {Middleware} middleware
      * @returns {Router}
      * @memberof Router
      */
-    public post(path: string | string[], middleware: RouterMiddleware): Router {
+    public post(path: string | string[], middleware: Middleware): Router {
         this.addMiddlewareDetails(path, ["POST"], middleware);
         return this;
     }
@@ -122,11 +115,11 @@ export class Router {
      * Defines a patch request handler.
      *
      * @param {string} path
-     * @param {RouterMiddleware} middleware
+     * @param {Middleware} middleware
      * @returns {Router}
      * @memberof Router
      */
-    public patch(path: string | string[], middleware: RouterMiddleware): Router {
+    public patch(path: string | string[], middleware: Middleware): Router {
         this.addMiddlewareDetails(path, ["PATCH"], middleware);
         return this;
     }
@@ -135,11 +128,11 @@ export class Router {
      * Defines a put request handler.
      *
      * @param {string} path
-     * @param {RouterMiddleware} middleware
+     * @param {Middleware} middleware
      * @returns {Router}
      * @memberof Router
      */
-    public put(path: string | string[], middleware: RouterMiddleware): Router {
+    public put(path: string | string[], middleware: Middleware): Router {
         this.addMiddlewareDetails(path, ["PUT"], middleware);
         return this;
     }
@@ -148,11 +141,11 @@ export class Router {
      * Defines a delete request handler.
      *
      * @param {string} path
-     * @param {RouterMiddleware} middleware
+     * @param {Middleware} middleware
      * @returns {Router}
      * @memberof Router
      */
-    public delete(path: string | string[], middleware: RouterMiddleware): Router {
+    public delete(path: string | string[], middleware: Middleware): Router {
         this.addMiddlewareDetails(path, ["DELETE"], middleware);
         return this;
     }
@@ -161,11 +154,11 @@ export class Router {
      * Defines a request handler for all HTTP verbs.
      *
      * @param {string} path
-     * @param {RouterMiddleware} middleware
+     * @param {Middleware} middleware
      * @returns {Router}
      * @memberof Router
      */
-    public all(path: string | string[], middleware: RouterMiddleware): Router {
+    public all(path: string | string[], middleware: Middleware): Router {
         this.addMiddlewareDetails(path, ["HEAD", "OPTIONS", "GET", "PUT", "PATCH", "POST", "DELETE"], middleware);
         return this;
     }
@@ -216,7 +209,7 @@ export class Router {
         this.middlewareDetails.push(param);
     }
 
-    private addMiddlewareDetails(path: string | string[], methods: HttpMethod[], middleware: RouterMiddleware): void {
+    private addMiddlewareDetails(path: string | string[], methods: HttpMethod[], middleware: Middleware): void {
         if (!Array.isArray(path)) {
             path = [path];
         }
@@ -230,7 +223,7 @@ export class Router {
         } as IMiddlewareDetails);
     }
 
-    private build(paths: string[], methods: HttpMethod[], middleware: RouterMiddleware): Middleware[] {
+    private build(paths: string[], methods: HttpMethod[], middleware: Middleware): Middleware[] {
         const results: Middleware[] = [];
 
         paths.forEach((path) => {
@@ -243,13 +236,11 @@ export class Router {
             const origin = this.config.origin!;
 
             results.push((context: FetchContext, next: () => Promise<void>): Promise<void> => {
-                const routerContext = context as RouterContext;
-
-                if (methods.indexOf(routerContext.request.method as HttpMethod) === -1) {
+                if (methods.indexOf(context.request.method as HttpMethod) === -1) {
                     return next();
                 }
 
-                const url = new URL(routerContext.request.url);
+                const url = new URL(context.request.url);
 
                 if (origin !== url.origin.toLowerCase()) {
                     return next();
@@ -259,17 +250,17 @@ export class Router {
                     return next();
                 }
 
-                routerContext.params = {};
+                context.params = {};
 
                 if (paramNames.length) {
                     const params = url.pathname.match(regexp)!.slice(1);                    
 
                     params.forEach((value: string, index: number) => {
-                        routerContext.params[paramNames[index].name] = value;
+                        context.params[paramNames[index].name] = value;
                     });
                 }
 
-                return Promise.resolve(middleware(routerContext, next));
+                return Promise.resolve(middleware(context, next));
             });
         });
 

@@ -17,13 +17,13 @@ MIT
 **Example**
 
 ```ts
-import { Swork } from "swork";
-import { Router, RouterContext } from "swork-router";
+import { Swork, FetchContext } from "swork";
+import { Router } from "swork-router";
 
 const app = new Swork();
 const router = new Router();
 
-router.get("/hello/:id", (context: RouterContext) => {
+router.get("/hello/:id", (context: FetchContext) => {
     context.response = new Response(`world id: ${context.params.id}`);
 });
 
@@ -39,12 +39,12 @@ app.listen();
 Create a route using the HTTP verb as your method name such as `router.get(...)` or `router.post(...)`. In addition, `all` is available to match on all HTTP verbs.
 
 ```ts
-router.get("/foos", async (context: RouterContext, next: () => Promise<void>) => {
-        // manipulate request
-        const response = await next();
-        // manipulate or cache response
-        context.response = response;
-    });
+router.get("/foos", async (context: FetchContext, next: () => Promise<void>) => {
+    // manipulate request
+    const response = await next();
+    // manipulate or cache response
+    context.response = response;
+});
 ```
 
 You are able to pass in a single path or an array of paths with the middleware to be invoked when a path is matched.
@@ -71,8 +71,10 @@ Route paths must start with a slash and end without one. Paths are translated to
 ```ts
 const router = new Router({ prefix: "/api" });
 
-router.use(getFooRouter());
-router.use(getBarRouter());
+router.use(getFooApiRouter());
+router.use(getBarApiRouter());
+
+app.use(router.routes());
 ```
 
 ## Configuration
@@ -107,7 +109,7 @@ router.get("/world", () => { ... });
 Named route parameters are captured and added to `context.params` property.
 
 ```ts
-router.put("/:id/:name", (context: RouterContext) => {
+router.put("/:id/:name", (context: FetchContext) => {
     console.log(context.params);
     // => { id: 99, name: "Jane" }
 });
