@@ -12,7 +12,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "path-to-regexp": "^4.0.0",
+    "path-to-regexp": "^5.0.0",
     "swork": "^1.4.3"
   },
   "jest": {
