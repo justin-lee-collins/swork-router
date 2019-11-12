@@ -1,4 +1,4 @@
-import * as pathToRegExp from "path-to-regexp";
+import { Key, pathToRegexp } from "path-to-regexp";
 import { FetchContext, Middleware } from "swork";
 import { configuration } from "swork/dist/configuration";
 
@@ -231,8 +231,8 @@ export class Router {
                 path = this.config.prefix + path;
             }
 
-            const paramNames: pathToRegExp.Key[] = [];
-            const regexp = pathToRegExp(path, paramNames);
+            const paramNames: Key[] = [];
+            const regexp = pathToRegexp(path, paramNames);
             const origin = this.config.origin!;
 
             results.push((context: FetchContext, next: () => Promise<void>): Promise<void> => {
